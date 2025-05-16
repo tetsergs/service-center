@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import OrderCard from '../components/OrderCard';
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -21,28 +23,32 @@ const OrdersPage = () => {
     return map[status] ?? 99;
   };
 
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('repairs') || '[]');
-    saved.sort((a, b) => new Date(b.date) - new Date(a.date));
+useEffect(() => {
+  const fetchOrders = async () => {
+    const snapshot = await getDocs(collection(db, 'orders'));
+    const data = snapshot.docs.map(doc => doc.data());
 
-    const statusPriority = (order) => {
-      const priorities = order.equipment.map(eq => statusPriorityValue(eq.status));
-      return Math.min(...priorities);
-    };
+    // Сортировка
+    data.sort((a, b) => new Date(b.date) - new Date(a.date));
+    data.sort((a, b) => statusPriority(a.status) - statusPriority(b.status));
 
-    saved.sort((a, b) => statusPriority(a) - statusPriority(b));
-
-    setOrders(saved);
-    setFiltered(saved);
-  }, []);
-
-  const handleUpdate = (index, updatedOrder) => {
-    const updated = [...orders];
-    updated[index] = updatedOrder;
-    localStorage.setItem('repairs', JSON.stringify(updated));
-    setOrders(updated);
-    applyFilters(updated);
+    setOrders(data);
+    setFiltered(data);
   };
+
+  fetchOrders();
+}, []);
+
+
+const handleUpdate = async (index, updatedOrder) => {
+  const updated = [...orders];
+  updated[index] = updatedOrder;
+
+  await setDoc(doc(db, 'orders', updatedOrder.id || `order-${index}`), updatedOrder);
+  setOrders(updated);
+  applyFilters(updated);
+};
+
 
   const handleDelete = (index) => {
     const updated = [...orders];

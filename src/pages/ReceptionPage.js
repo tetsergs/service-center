@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import { db } from '../firebase'; // путь зависит от расположения firebase.js
+import { setDoc, doc } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+
 
 const ReceptionPage = () => {
   const [formData, setFormData] = useState({
@@ -35,23 +39,36 @@ const ReceptionPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const current = JSON.parse(localStorage.getItem('repairs') || '[]');
-    localStorage.setItem('repairs', JSON.stringify([...current, formData]));
-    alert('Заявка сохранена!');
-    // Reset form
-    setFormData({
-      clientName: '',
-      phone: '',
-      city: 'Астана',
-      equipment: [{ type: '', customType: '', name: '', serial: '' }],
-      date: '',
-      technician: '',
-      status: 'Диагностика',
-      notes: '',
-    });
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const orderWithId = {
+    ...formData,
+    id: uuidv4(), // генерируем уникальный ID
   };
+
+  try {
+    await setDoc(doc(db, 'orders', orderWithId.id), orderWithId);
+    alert('Заявка сохранена!');
+  } catch (error) {
+    console.error('Ошибка при сохранении заявки:', error);
+    alert('Ошибка при сохранении!');
+    return;
+  }
+
+  // Очистка формы
+  setFormData({
+    clientName: '',
+    phone: '',
+    city: 'Астана',
+    equipment: [{ type: '', customType: '', name: '', serial: '' }],
+    date: '',
+    technician: '',
+    status: 'Диагностика',
+    notes: '',
+  });
+};
+
 
   return (
     <div className="container mt-5">

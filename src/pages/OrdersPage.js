@@ -23,32 +23,35 @@ const OrdersPage = () => {
     return map[status] ?? 99;
   };
 
-useEffect(() => {
-  const fetchOrders = async () => {
-    const snapshot = await getDocs(collection(db, 'orders'));
-    const data = snapshot.docs.map(doc => doc.data());
-
-    // Сортировка
-    data.sort((a, b) => new Date(b.date) - new Date(a.date));
-    data.sort((a, b) => statusPriority(a.status) - statusPriority(b.status));
-
-    setOrders(data);
-    setFiltered(data);
+  const statusPriority = (order) => {
+    const priorities = order.equipment.map(eq => statusPriorityValue(eq.status));
+    return Math.min(...priorities);
   };
 
-  fetchOrders();
-}, []);
+  useEffect(() => {
+    const fetchOrders = async () => {
+      const snapshot = await getDocs(collection(db, 'orders'));
+      const data = snapshot.docs.map(doc => doc.data());
 
+      // Сортировка
+      data.sort((a, b) => new Date(b.date) - new Date(a.date));
+      data.sort((a, b) => statusPriority(a) - statusPriority(b));
 
-const handleUpdate = async (index, updatedOrder) => {
-  const updated = [...orders];
-  updated[index] = updatedOrder;
+      setOrders(data);
+      setFiltered(data);
+    };
 
-  await setDoc(doc(db, 'orders', updatedOrder.id || `order-${index}`), updatedOrder);
-  setOrders(updated);
-  applyFilters(updated);
-};
+    fetchOrders();
+  }, []);
 
+  const handleUpdate = async (index, updatedOrder) => {
+    const updated = [...orders];
+    updated[index] = updatedOrder;
+
+    await setDoc(doc(db, 'orders', updatedOrder.id || `order-${index}`), updatedOrder);
+    setOrders(updated);
+    applyFilters(updated);
+  };
 
   const handleDelete = (index) => {
     const updated = [...orders];
@@ -98,11 +101,6 @@ const handleUpdate = async (index, updatedOrder) => {
         })
         .filter(Boolean);
     }
-
-    const statusPriority = (order) => {
-      const priorities = order.equipment.map(eq => statusPriorityValue(eq.status));
-      return Math.min(...priorities);
-    };
 
     result.sort((a, b) => statusPriority(a) - statusPriority(b));
 

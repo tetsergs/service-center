@@ -126,14 +126,17 @@ const handleSubmit = async (e) => {
               </div>
               <div className="col-md-6">
                 <label className="form-label">Имя техника</label>
-                <input
-                  type="text"
-                  name="technician"
-                  className="form-control"
-                  value={formData.technician}
-                  onChange={handleChange}
-                  required
-                />
+                  <select
+                    className="form-select mb-3"
+                    name="technician"
+                    value={order.technician}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Выберите техника</option>
+                    <option value="Мади">Мади</option>
+                    <option value="Ермахан">Ермахан</option>
+                  </select>
               </div>
               <div className="col-12">
                 <label className="form-label">Заметки</label>

@@ -129,7 +129,7 @@ const handleSubmit = async (e) => {
                   <select
                     className="form-select mb-3"
                     name="technician"
-                    value={order.technician}
+                    value={formData.technician}
                     onChange={handleChange}
                     required
                   >

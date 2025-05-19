@@ -191,11 +191,10 @@ if (applied.status) {
       </div>
 
       {filtered.length > 0 ? (
-        filtered.map((order, index) => (
+        filtered.map((order) => (
           <OrderCard
-            key={index}
+            key={order.id}           // Используем уникальный id вместо index
             order={order}
-            index={index}
             onUpdate={handleUpdate}
             onDelete={handleDelete}
           />
@@ -203,6 +202,7 @@ if (applied.status) {
       ) : (
         <div className="alert alert-info">Заявки не найдены.</div>
       )}
+
     </div>
   );
 };

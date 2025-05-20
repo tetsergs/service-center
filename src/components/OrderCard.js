@@ -48,20 +48,20 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
 
   const downloadPDF = () => {
     const docPdf = new jsPDF();
-    docPdf.text(`Акт выполненных работ`, 20, 20);
+    docPdf.text('Акт выполненных работ', 20, 20);
     docPdf.text(`Клиент: ${order.clientName}`, 20, 30);
     docPdf.text(`Телефон: ${order.phone}`, 20, 40);
     docPdf.text(`Город: ${order.city}`, 20, 50);
     docPdf.text(`Техник: ${order.technician}`, 20, 60);
     docPdf.text(`Дата: ${order.date}`, 20, 70);
-    docPdf.text(`Статус заявки: ${order.status}`, 20, 80);
+    docPdf.text(`Статус заявки: ${order.status || ''}`, 20, 80);
     docPdf.text(`Заметки: ${order.notes}`, 20, 90);
 
-    docPdf.text(`Оборудование:`, 20, 110);
+    docPdf.text('Оборудование:', 20, 110);
     order.equipment?.forEach((item, index) => {
       const type = item.type === 'Другое' ? item.customType : item.type;
       docPdf.text(
-        `${index + 1}. ${type}, ${item.name}, SN: ${item.serial}, Статус: ${item.status}`,
+        `${index + 1}. ${type}, ${item.name}, SN: ${item.serial}, Статус: ${item.status || ''}`,
         25,
         120 + index * 10
       );
@@ -113,7 +113,8 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
                 name="notes"
                 value={editedOrder.notes}
                 onChange={handleChange}
-              />
+              ></textarea>
+
             </div>
 
             <div className="mb-2">
@@ -122,8 +123,7 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
                 {editedOrder.equipment?.map((item, index) => (
                   <li key={index} className="list-group-item">
                     <div>
-                      <strong>Тип:</strong>{' '}
-                      {item.type === 'Другое' ? item.customType : item.type}
+                      <strong>Тип:</strong> {item.type === 'Другое' ? item.customType : item.type}
                     </div>
                     <div>
                       <strong>Название:</strong> {item.name}

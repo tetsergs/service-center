@@ -15,11 +15,20 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
     }));
   };
 
+  const handleEquipmentStatusChange = (index, value) => {
+    const updatedEquipment = [...editedOrder.equipment];
+    updatedEquipment[index].status = value;
+    setEditedOrder((prev) => ({
+      ...prev,
+      equipment: updatedEquipment,
+    }));
+  };
+
   const handleSave = async () => {
     try {
       const orderRef = doc(db, 'orders', order.id);
       await updateDoc(orderRef, editedOrder);
-      onUpdate(editedOrder); // передаём новый объект
+      onUpdate({ ...editedOrder, id: order.id });
       setIsEditing(false);
     } catch (error) {
       console.error('Ошибка при обновлении заявки:', error);
@@ -45,13 +54,17 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
     docPdf.text(`Город: ${order.city}`, 20, 50);
     docPdf.text(`Техник: ${order.technician}`, 20, 60);
     docPdf.text(`Дата: ${order.date}`, 20, 70);
-    docPdf.text(`Статус: ${order.status}`, 20, 80);
+    docPdf.text(`Статус заявки: ${order.status}`, 20, 80);
     docPdf.text(`Заметки: ${order.notes}`, 20, 90);
 
     docPdf.text(`Оборудование:`, 20, 110);
-    order.equipment.forEach((item, index) => {
+    order.equipment?.forEach((item, index) => {
       const type = item.type === 'Другое' ? item.customType : item.type;
-      docPdf.text(`${index + 1}. ${type}, ${item.name}, SN: ${item.serial}`, 25, 120 + index * 10);
+      docPdf.text(
+        `${index + 1}. ${type}, ${item.name}, SN: ${item.serial}, Статус: ${item.status}`,
+        25,
+        120 + index * 10
+      );
     });
 
     docPdf.save(`Заявка_${order.clientName}.pdf`);
@@ -81,7 +94,7 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
               />
             </div>
             <div className="mb-2">
-              <label>Статус</label>
+              <label>Статус заявки</label>
               <select
                 className="form-control"
                 name="status"
@@ -103,6 +116,43 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
               />
             </div>
 
+            <div className="mb-2">
+              <label>Оборудование:</label>
+              <ul className="list-group">
+                {editedOrder.equipment?.map((item, index) => (
+                  <li key={index} className="list-group-item">
+                    <div>
+                      <strong>Тип:</strong>{' '}
+                      {item.type === 'Другое' ? item.customType : item.type}
+                    </div>
+                    <div>
+                      <strong>Название:</strong> {item.name}
+                    </div>
+                    <div>
+                      <strong>Серийный номер:</strong> {item.serial}
+                    </div>
+                    <div className="mt-2">
+                      <label>Статус:</label>
+                      <select
+                        className="form-control"
+                        value={item.status}
+                        onChange={(e) =>
+                          handleEquipmentStatusChange(index, e.target.value)
+                        }
+                      >
+                        <option value="Принят">Принят</option>
+                        <option value="Диагностика">Диагностика</option>
+                        <option value="В работе">В работе</option>
+                        <option value="Ожидает запчасти">Ожидает запчасти</option>
+                        <option value="Готов">Готов</option>
+                        <option value="Выдан">Выдан</option>
+                      </select>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             <button onClick={handleSave} className="btn btn-success btn-sm me-2">
               💾 Сохранить
             </button>
@@ -118,17 +168,17 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
               <strong>Город:</strong> {order.city} <br />
               <strong>Дата:</strong> {order.date} <br />
               <strong>Техник:</strong> {order.technician} <br />
-              <strong>Статус:</strong> {order.status} <br />
+              <strong>Статус заявки:</strong> {order.status} <br />
               <strong>Заметки:</strong> {order.notes}
             </p>
 
-            {order.equipment && order.equipment.length > 0 && (
+            {order.equipment?.length > 0 && (
               <div className="mb-3">
                 <strong>Оборудование:</strong>
                 <ul className="mt-2">
                   {order.equipment.map((item, index) => (
                     <li key={index}>
-                      {item.type === 'Другое' ? item.customType : item.type} — {item.name} (SN: {item.serial})
+                      {item.type === 'Другое' ? item.customType : item.type} — {item.name} (SN: {item.serial}) — <em>{item.status}</em>
                     </li>
                   ))}
                 </ul>

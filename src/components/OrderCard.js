@@ -1,201 +1,218 @@
 import React, { useState } from 'react';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import jsPDF from 'jspdf';
+import { generatePDF } from '../utils/generatePDF';
+
+const statusBadge = (status) => {
+  switch (status) {
+    case 'Диагностика':
+      return <span className="badge bg-secondary">Диагностика</span>;
+    case 'Ремонт':
+      return <span className="badge bg-warning text-dark">Ремонт</span>;
+    case 'Готово':
+      return <span className="badge bg-success">Готово</span>;
+    default:
+      return <span className="badge bg-light text-dark">Неизвестно</span>;
+  }
+};
 
 const OrderCard = ({ order, onUpdate, onDelete }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedOrder, setEditedOrder] = useState({ ...order });
+  const [equipmentState, setEquipmentState] = useState(order.equipment);
+  const [editingIndex, setEditingIndex] = useState(null);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setEditedOrder((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const startEditing = (index) => {
+    setEquipmentState(order.equipment);
+    setEditingIndex(index);
   };
 
-  const handleEquipmentStatusChange = (index, value) => {
-    const updatedEquipment = [...editedOrder.equipment];
-    updatedEquipment[index].status = value;
-    setEditedOrder((prev) => ({
-      ...prev,
-      equipment: updatedEquipment,
-    }));
+  const updateEquipmentField = (index, field, value) => {
+    const updated = [...equipmentState];
+    updated[index] = { ...updated[index], [field]: value };
+
+    if (field === 'warranty' && value) {
+      updated[index].repairCost = '';
+      updated[index].repairDetails = '';
+    }
+
+    setEquipmentState(updated);
   };
 
-  const handleSave = async () => {
-    try {
-      const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, editedOrder);
-      onUpdate({ ...editedOrder, id: order.id });
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Ошибка при обновлении заявки:', error);
+  const handleSave = (index) => {
+    const updatedOrder = {
+      ...order,
+      equipment: equipmentState,
+    };
+    onUpdate(updatedOrder);
+    setEditingIndex(null);
+  };
+
+  const handleDeleteWithPIN = () => {
+    const pin = prompt('Введите PIN-код для удаления:');
+    if (pin === '0000') {
+      onDelete();
+    } else {
+      alert('Неверный PIN-код. Удаление отменено.');
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('Удалить заявку?')) {
-      try {
-        await deleteDoc(doc(db, 'orders', order.id));
-        onDelete(order.id);
-      } catch (error) {
-        console.error('Ошибка при удалении:', error);
+  const getTotalCost = () =>
+    order.equipment.reduce((sum, eq) => {
+      if (eq.status === 'Готово' && !eq.warranty) {
+        return sum + Number(eq.repairCost || 0);
       }
-    }
-  };
-
-  const downloadPDF = () => {
-    const docPdf = new jsPDF();
-    docPdf.text('Акт выполненных работ', 20, 20);
-    docPdf.text(`Клиент: ${order.clientName}`, 20, 30);
-    docPdf.text(`Телефон: ${order.phone}`, 20, 40);
-    docPdf.text(`Город: ${order.city}`, 20, 50);
-    docPdf.text(`Техник: ${order.technician}`, 20, 60);
-    docPdf.text(`Дата: ${order.date}`, 20, 70);
-    docPdf.text(`Статус заявки: ${order.status || ''}`, 20, 80);
-    docPdf.text(`Заметки: ${order.notes}`, 20, 90);
-
-    docPdf.text('Оборудование:', 20, 110);
-    order.equipment?.forEach((item, index) => {
-      const type = item.type === 'Другое' ? item.customType : item.type;
-      docPdf.text(
-        `${index + 1}. ${type}, ${item.name}, SN: ${item.serial}, Статус: ${item.status || ''}`,
-        25,
-        120 + index * 10
-      );
-    });
-
-    docPdf.save(`Заявка_${order.clientName}.pdf`);
-  };
+      return sum;
+    }, 0);
 
   return (
-    <div className="card mb-3 shadow-sm">
+    <div className="card shadow-sm mb-4 border-0">
       <div className="card-body">
-        {isEditing ? (
-          <>
-            <div className="mb-2">
-              <label>Имя клиента</label>
-              <input
-                className="form-control"
-                name="clientName"
-                value={editedOrder.clientName}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="mb-2">
-              <label>Телефон</label>
-              <input
-                className="form-control"
-                name="phone"
-                value={editedOrder.phone}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="mb-2">
-              <label>Статус заявки</label>
-              <select
-                className="form-control"
-                name="status"
-                value={editedOrder.status}
-                onChange={handleChange}
-              >
-                <option value="Диагностика">Диагностика</option>
-                <option value="В работе">В работе</option>
-                <option value="Завершено">Завершено</option>
-              </select>
-            </div>
-            <div className="mb-2">
-              <label>Заметки</label>
-              <textarea
-                className="form-control"
-                name="notes"
-                value={editedOrder.notes}
-                onChange={handleChange}
-              ></textarea>
+        <div className="d-flex justify-content-between align-items-start">
+          <div>
+  <h5 className="mb-1">
+    <i className="bi bi-person-fill me-2"></i>{order.clientName}
+  </h5>
+  
+  {order.clientPhone && (
+    <p className="mb-1 text-muted">
+      <i className="bi bi-telephone me-1"></i>{order.clientPhone}
+    </p>
+  )}
 
-            </div>
+  {order.city && (
+    <p className="mb-1 text-muted">
+      <i className="bi bi-geo-alt me-1"></i>{order.city}
+    </p>
+  )}
 
-            <div className="mb-2">
-              <label>Оборудование:</label>
-              <ul className="list-group">
-                {editedOrder.equipment?.map((item, index) => (
-                  <li key={index} className="list-group-item">
-                    <div>
-                      <strong>Тип:</strong> {item.type === 'Другое' ? item.customType : item.type}
-                    </div>
-                    <div>
-                      <strong>Название:</strong> {item.name}
-                    </div>
-                    <div>
-                      <strong>Серийный номер:</strong> {item.serial}
-                    </div>
-                    <div className="mt-2">
-                      <label>Статус:</label>
-                      <select
-                        className="form-control"
-                        value={item.status}
-                        onChange={(e) =>
-                          handleEquipmentStatusChange(index, e.target.value)
-                        }
-                      >
-                        <option value="Принят">Принят</option>
-                        <option value="Диагностика">Диагностика</option>
-                        <option value="В работе">В работе</option>
-                        <option value="Ожидает запчасти">Ожидает запчасти</option>
-                        <option value="Готов">Готов</option>
-                        <option value="Выдан">Выдан</option>
-                      </select>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+  {order.technician && (
+    <p className="mb-1 text-muted">
+      <i className="bi bi-person-badge me-1"></i>Техник: {order.technician}
+    </p>
+  )}
 
-            <button onClick={handleSave} className="btn btn-success btn-sm me-2">
-              💾 Сохранить
+  <small className="text-muted">
+    <i className="bi bi-clock me-1"></i>
+    {order.createdAt
+      ? new Date(order.createdAt).toLocaleString('ru-RU')
+      : 'Дата не указана'}
+  </small>
+</div>
+
+
+          <div className="d-flex flex-column align-items-end gap-1">
+            <button className="btn btn-sm btn-outline-success" onClick={() => generatePDF(order)}>
+              <i className="bi bi-download me-1"></i>Скачать АВР
             </button>
-            <button onClick={() => setIsEditing(false)} className="btn btn-secondary btn-sm me-2">
-              ❌ Отмена
+            <button className="btn btn-sm btn-outline-danger" onClick={handleDeleteWithPIN}>
+              <i className="bi bi-trash me-1"></i>Удалить
             </button>
-          </>
-        ) : (
-          <>
-            <h5 className="card-title">{order.clientName}</h5>
-            <p className="card-text">
-              <strong>Телефон:</strong> {order.phone} <br />
-              <strong>Город:</strong> {order.city} <br />
-              <strong>Дата:</strong> {order.date} <br />
-              <strong>Техник:</strong> {order.technician} <br />
-              <strong>Статус заявки:</strong> {order.status} <br />
-              <strong>Заметки:</strong> {order.notes}
-            </p>
+          </div>
+        </div>
 
-            {order.equipment?.length > 0 && (
-              <div className="mb-3">
-                <strong>Оборудование:</strong>
-                <ul className="mt-2">
-                  {order.equipment.map((item, index) => (
-                    <li key={index}>
-                      {item.type === 'Другое' ? item.customType : item.type} — {item.name} (SN: {item.serial}) — <em>{item.status}</em>
-                    </li>
-                  ))}
-                </ul>
+        <hr />
+
+        <h6 className="mb-3">
+          <i className="bi bi-tools me-2"></i>Оборудование
+        </h6>
+
+        {order.equipment.map((eq, index) => (
+          <div key={index} className="border rounded p-3 mb-3 bg-light-subtle">
+            <div className="d-flex justify-content-between">
+              <div>
+                <div><strong>Тип:</strong> {eq.customType || eq.type}</div>
+                <div><strong>Серийный:</strong> {eq.serial}</div>
               </div>
-            )}
 
-            <button onClick={() => setIsEditing(true)} className="btn btn-primary btn-sm me-2">
-              ✏️ Редактировать
-            </button>
-            <button onClick={handleDelete} className="btn btn-danger btn-sm me-2">
-              🗑 Удалить
-            </button>
-            <button onClick={downloadPDF} className="btn btn-outline-secondary btn-sm">
-              📄 Скачать АВР
-            </button>
-          </>
-        )}
+              <div className="text-end">
+                {editingIndex === index ? (
+                  <>
+                    <select
+                      className="form-select form-select-sm mb-2"
+                      value={equipmentState[index].status}
+                      onChange={(e) => updateEquipmentField(index, 'status', e.target.value)}
+                    >
+                      <option value="Диагностика">Диагностика</option>
+                      <option value="Ремонт">Ремонт</option>
+                      <option value="Готово">Готово</option>
+                    </select>
+
+                    {equipmentState[index].status === 'Готово' && (
+                      <>
+                        <div className="form-check mb-2">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id={`warranty-${index}`}
+                            checked={equipmentState[index].warranty || false}
+                            onChange={(e) =>
+                              updateEquipmentField(index, 'warranty', e.target.checked)
+                            }
+                          />
+                          <label htmlFor={`warranty-${index}`} className="form-check-label">
+                            Гарантийный ремонт
+                          </label>
+                        </div>
+
+                        {!equipmentState[index].warranty && (
+                          <>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm mb-1"
+                              placeholder="Услуга"
+                              value={equipmentState[index].repairDetails || ''}
+                              onChange={(e) =>
+                                updateEquipmentField(index, 'repairDetails', e.target.value)
+                              }
+                            />
+                            <input
+                              type="number"
+                              className="form-control form-control-sm mb-2"
+                              placeholder="Сумма"
+                              value={equipmentState[index].repairCost || ''}
+                              onChange={(e) =>
+                                updateEquipmentField(index, 'repairCost', e.target.value)
+                              }
+                            />
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    <div className="d-flex gap-2 justify-content-end">
+                      <button className="btn btn-sm btn-success" onClick={() => handleSave(index)}>
+                        <i className="bi bi-check-circle"></i>
+                      </button>
+                      <button className="btn btn-sm btn-secondary" onClick={() => setEditingIndex(null)}>
+                        <i className="bi bi-x-circle"></i>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-1">{statusBadge(eq.status)}</div>
+                    {eq.status === 'Готово' && (
+                      <>
+                        <div><strong>Услуга:</strong> {eq.repairDetails || '—'}</div>
+                        <div>
+                          <strong>Стоимость:</strong>{' '}
+                          {eq.warranty ? 'Гарантия' : `${eq.repairCost || 0} ₸`}
+                        </div>
+                      </>
+                    )}
+                    <button
+                      className="btn btn-sm btn-outline-primary mt-2"
+                      onClick={() => startEditing(index)}
+                    >
+                      <i className="bi bi-pencil"></i>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <div className="text-end mt-2">
+          <strong>Итого: {getTotalCost()} ₸</strong>
+        </div>
       </div>
     </div>
   );

@@ -44,7 +44,9 @@ const handleSubmit = async (e) => {
 
   const orderWithId = {
     ...formData,
-    id: uuidv4(), // генерируем уникальный ID
+    id: uuidv4(),
+    createdAt: Date.now(), // 🕒 текущая дата
+    clientPhone: formData.phone, // 📞 правильное поле
   };
 
   try {
@@ -68,6 +70,7 @@ const handleSubmit = async (e) => {
     notes: '',
   });
 };
+
 
 
   return (

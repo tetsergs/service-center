@@ -1,8 +1,7 @@
-// src/components/WarrantyForm.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  TextField, Button, Typography, Box, Paper, List, ListItem, InputAdornment,
-  Dialog, DialogTitle, DialogContent, IconButton, Stack, useMediaQuery
+  TextField, Button, Typography, Box, Paper, List, ListItem,
+  InputAdornment, Dialog, DialogTitle, DialogContent, IconButton
 } from '@mui/material';
 import { QrCodeScanner } from '@mui/icons-material';
 import { collection, addDoc, getDocs, query } from 'firebase/firestore';
@@ -19,20 +18,18 @@ const WarrantyForm = () => {
   const [searchResult, setSearchResult] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const scannerRef = useRef(null);
-  const isMobile = useMediaQuery('(max-width:600px)');
 
-  const handleAddSerial = () => {
+  const handleManualAdd = () => {
     if (input.trim()) {
       setSerials(prev => [...prev, input.trim()]);
       setInput('');
     }
   };
 
-  const handleScanKeyDown = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddSerial();
+      e.preventDefault(); // особенно важно на мобилках
+      handleManualAdd();
     }
   };
 
@@ -49,6 +46,7 @@ const WarrantyForm = () => {
     const doc = new jsPDF();
     const img = new Image();
     img.src = logo;
+
     img.onload = () => {
       doc.addImage(img, 'PNG', 80, 10, 50, 20);
       doc.setFont('helvetica', 'bold');
@@ -69,6 +67,7 @@ const WarrantyForm = () => {
       doc.text('Гарантийные условия:', 14, doc.lastAutoTable.finalY + 10);
       doc.setFontSize(10);
       doc.text('Этот текст будет заменён позже на актуальные условия.', 14, doc.lastAutoTable.finalY + 20);
+
       doc.save('warranty.pdf');
     };
 
@@ -92,26 +91,33 @@ const WarrantyForm = () => {
     setSearchResult(filtered);
   };
 
+    const handleDeleteSerial = (index) => {
+    setSerials(prev => prev.filter((_, i) => i !== index));
+    };
+
   useEffect(() => {
     let html5QrCode;
-    if (isScannerOpen && scannerRef.current) {
-html5QrCode = new Html5Qrcode(scannerRef.current);
+
+    if (isScannerOpen) {
+      const scannerId = 'html5qr-code-full-region';
+      html5QrCode = new Html5Qrcode(scannerId);
 
       Html5Qrcode.getCameras().then(devices => {
         if (devices && devices.length) {
           html5QrCode.start(
             devices[0].id,
-            { fps: 10, qrbox: { width: 250, height: 250 } },
+            { fps: 10, qrbox: 250 },
             decodedText => {
               setSerials(prev => [...prev, decodedText]);
               setIsScannerOpen(false);
-              html5QrCode.stop();
+              html5QrCode.stop().then(() => html5QrCode.clear());
             },
             () => {}
           );
         }
-      }).catch(console.error);
+      }).catch(err => console.error('Camera error:', err));
     }
+
     return () => {
       if (html5QrCode) {
         html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
@@ -120,61 +126,103 @@ html5QrCode = new Html5Qrcode(scannerRef.current);
   }, [isScannerOpen]);
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 4 }, maxWidth: 600, mx: 'auto' }}>
-  <Typography variant="h5" gutterBottom>Выдача гарантийных талонов</Typography>
+    <Box sx={{ p: { xs: 2, sm: 4 } }}>
+      <Typography variant="h5" gutterBottom>Выдача гарантийных талонов</Typography>
 
-  {/* Блок ввода серийника и кнопка */}
-  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mb: 2 }}>
-    <TextField
-      label="Сканируйте ШК или введите вручную"
-      value={input}
-      onChange={e => setInput(e.target.value)}
-      fullWidth
-    />
-    <Button
-      variant="contained"
-      onClick={() => {
-        if (input.trim()) {
-          setSerials(prev => [...prev, input.trim()]);
-          setInput('');
-        }
-      }}
-      sx={{ whiteSpace: 'nowrap' }}
+      <TextField
+        label="Сканируйте ШК или введите вручную"
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        fullWidth
+        sx={{ mb: 2 }}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={() => setIsScannerOpen(true)}>
+                <QrCodeScanner />
+              </IconButton>
+            </InputAdornment>
+          )
+        }}
+      />
+
+      <Button
+        variant="outlined"
+        onClick={handleManualAdd}
+        sx={{ mb: 2 }}
+        fullWidth
+      >
+        Добавить серийник
+      </Button>
+
+      <TextField
+        label="Номер телефона клиента"
+        value={clientPhone}
+        onChange={e => setClientPhone(e.target.value)}
+        fullWidth
+        sx={{ mb: 2 }}
+      />
+
+      <Paper variant="outlined" sx={{ maxHeight: 200, overflow: 'auto', mb: 2, p: 1 }}>
+<List dense>
+  {serials.map((s, i) => (
+    <ListItem
+      key={i}
+      secondaryAction={
+        <IconButton edge="end" onClick={() => handleDeleteSerial(i)}>
+          ✕
+        </IconButton>
+      }
     >
-      Добавить
-    </Button>
-    <IconButton onClick={() => setIsScannerOpen(true)}>
-      <QrCodeScanner />
-    </IconButton>
-  </Box>
+      {s}
+    </ListItem>
+  ))}
+</List>
 
-  {/* Телефон */}
-  <TextField
-    label="Номер телефона клиента"
-    value={clientPhone}
-    onChange={e => setClientPhone(e.target.value)}
-    fullWidth
-    sx={{ mb: 2 }}
-  />
 
-  {/* Список серийников */}
-  <Paper sx={{ maxHeight: 200, overflow: 'auto', mb: 2 }}>
-    <List>
-      {serials.map((s, i) => (
-        <ListItem key={i}>{s}</ListItem>
+      </Paper>
+
+      <Button
+        variant="contained"
+        onClick={generatePDF}
+        disabled={!serials.length || !clientPhone}
+        fullWidth
+        sx={{ mb: 4 }}
+      >
+        Сгенерировать ГТ
+      </Button>
+
+      <Typography variant="h6">Поиск по серийному номеру или телефону</Typography>
+
+      <TextField
+        label="Введите часть серийного номера или телефона"
+        value={searchQuery}
+        onChange={e => setSearchQuery(e.target.value)}
+        fullWidth
+        sx={{ mt: 2, mb: 1 }}
+      />
+
+      <Box display="flex" gap={1} sx={{ mb: 2 }}>
+        <Button variant="outlined" onClick={searchBySerial} fullWidth>Поиск по серийному</Button>
+        <Button variant="outlined" onClick={searchByPhone} fullWidth>Поиск по телефону</Button>
+      </Box>
+
+      {searchResult.map((res, i) => (
+        <Paper key={i} sx={{ mt: 2, p: 2 }}>
+          <Typography>Телефон: {res.phone}</Typography>
+          <Typography>Дата: {new Date(res.date).toLocaleDateString()}</Typography>
+          <Typography>Серийники: {res.serials.join(', ')}</Typography>
+        </Paper>
       ))}
-    </List>
-  </Paper>
 
-  <Button
-    variant="contained"
-    fullWidth
-    onClick={generatePDF}
-    disabled={!serials.length || !clientPhone}
-  >
-    Сгенерировать ГТ
-  </Button>
-</Box>
+      <Dialog open={isScannerOpen} onClose={() => setIsScannerOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Сканируйте QR/Штрихкод</DialogTitle>
+        <DialogContent>
+          <div id="html5qr-code-full-region" style={{ width: '100%' }} />
+        </DialogContent>
+      </Dialog>
+    </Box>
   );
 };
 

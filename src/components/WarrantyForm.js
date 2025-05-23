@@ -95,7 +95,8 @@ const WarrantyForm = () => {
   useEffect(() => {
     let html5QrCode;
     if (isScannerOpen && scannerRef.current) {
-      html5QrCode = new Html5Qrcode("scanner");
+html5QrCode = new Html5Qrcode(scannerRef.current);
+
       Html5Qrcode.getCameras().then(devices => {
         if (devices && devices.length) {
           html5QrCode.start(
@@ -119,76 +120,61 @@ const WarrantyForm = () => {
   }, [isScannerOpen]);
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>Выдача гарантийных талонов</Typography>
+    <Box sx={{ p: { xs: 2, sm: 4 }, maxWidth: 600, mx: 'auto' }}>
+  <Typography variant="h5" gutterBottom>Выдача гарантийных талонов</Typography>
 
-      <Stack spacing={2}>
-        <TextField
-          label="Сканируйте ШК или введите вручную"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleScanKeyDown}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setIsScannerOpen(true)}>
-                  <QrCodeScanner />
-                </IconButton>
-              </InputAdornment>
-            )
-          }}
-          fullWidth
-        />
+  {/* Блок ввода серийника и кнопка */}
+  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mb: 2 }}>
+    <TextField
+      label="Сканируйте ШК или введите вручную"
+      value={input}
+      onChange={e => setInput(e.target.value)}
+      fullWidth
+    />
+    <Button
+      variant="contained"
+      onClick={() => {
+        if (input.trim()) {
+          setSerials(prev => [...prev, input.trim()]);
+          setInput('');
+        }
+      }}
+      sx={{ whiteSpace: 'nowrap' }}
+    >
+      Добавить
+    </Button>
+    <IconButton onClick={() => setIsScannerOpen(true)}>
+      <QrCodeScanner />
+    </IconButton>
+  </Box>
 
-        <TextField
-          label="Номер телефона клиента"
-          value={clientPhone}
-          onChange={e => setClientPhone(e.target.value)}
-          fullWidth
-        />
+  {/* Телефон */}
+  <TextField
+    label="Номер телефона клиента"
+    value={clientPhone}
+    onChange={e => setClientPhone(e.target.value)}
+    fullWidth
+    sx={{ mb: 2 }}
+  />
 
-        <List component={Paper} sx={{ maxHeight: 200, overflow: 'auto' }}>
-          {serials.map((s, i) => (
-            <ListItem key={i}>{s}</ListItem>
-          ))}
-        </List>
+  {/* Список серийников */}
+  <Paper sx={{ maxHeight: 200, overflow: 'auto', mb: 2 }}>
+    <List>
+      {serials.map((s, i) => (
+        <ListItem key={i}>{s}</ListItem>
+      ))}
+    </List>
+  </Paper>
 
-        <Button variant="contained" onClick={generatePDF} disabled={!serials.length || !clientPhone}>
-          Сгенерировать ГТ
-        </Button>
-
-        <Typography variant="h6">Поиск по серийному номеру или телефону</Typography>
-        <TextField
-          label="Введите часть серийного номера или телефона"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <Button onClick={searchBySerial}>По серийному</Button>
-                <Button onClick={searchByPhone}>По телефону</Button>
-              </InputAdornment>
-            )
-          }}
-          fullWidth
-        />
-
-        {searchResult.map((res, i) => (
-          <Paper key={i} sx={{ p: 2 }}>
-            <Typography>Телефон: {res.phone}</Typography>
-            <Typography>Дата: {new Date(res.date).toLocaleDateString()}</Typography>
-            <Typography>Серийники: {res.serials.join(', ')}</Typography>
-          </Paper>
-        ))}
-      </Stack>
-
-      <Dialog open={isScannerOpen} onClose={() => setIsScannerOpen(false)} fullScreen={isMobile} fullWidth maxWidth="sm">
-        <DialogTitle>Сканируйте QR/Штрихкод</DialogTitle>
-        <DialogContent>
-          <Box id="scanner" ref={scannerRef} sx={{ width: '100%', height: 300 }} />
-        </DialogContent>
-      </Dialog>
-    </Box>
+  <Button
+    variant="contained"
+    fullWidth
+    onClick={generatePDF}
+    disabled={!serials.length || !clientPhone}
+  >
+    Сгенерировать ГТ
+  </Button>
+</Box>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   TextField, Button, Typography, Box, Paper, List, ListItem,
   InputAdornment, Dialog, DialogTitle, DialogContent, IconButton
@@ -18,6 +18,8 @@ const WarrantyForm = () => {
   const [searchResult, setSearchResult] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const scannerRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
 
   const handleManualAdd = () => {
     if (input.trim()) {
@@ -28,7 +30,7 @@ const WarrantyForm = () => {
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault(); // особенно важно на мобилках
+      e.preventDefault();
       handleManualAdd();
     }
   };
@@ -91,36 +93,41 @@ const WarrantyForm = () => {
     setSearchResult(filtered);
   };
 
-    const handleDeleteSerial = (index) => {
+  const handleDeleteSerial = (index) => {
     setSerials(prev => prev.filter((_, i) => i !== index));
-    };
+  };
 
   useEffect(() => {
-    let html5QrCode;
-
-    if (isScannerOpen) {
-      const scannerId = 'html5qr-code-full-region';
-      html5QrCode = new Html5Qrcode(scannerId);
+    if (isScannerOpen && scannerRef.current) {
+      const html5QrCode = new Html5Qrcode(scannerRef.current.id);
+      html5QrCodeRef.current = html5QrCode;
 
       Html5Qrcode.getCameras().then(devices => {
         if (devices && devices.length) {
           html5QrCode.start(
             devices[0].id,
-            { fps: 10, qrbox: 250 },
-            decodedText => {
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
               setSerials(prev => [...prev, decodedText]);
               setIsScannerOpen(false);
-              html5QrCode.stop().then(() => html5QrCode.clear());
+              html5QrCode.stop().catch(console.error);
             },
-            () => {}
+            (error) => {
+              console.warn("Ошибка сканирования", error);
+            }
           );
+        } else {
+          alert("Камера не найдена или доступ к ней запрещён.");
         }
-      }).catch(err => console.error('Camera error:', err));
+      }).catch(err => {
+        console.error("Ошибка доступа к камере:", err);
+        alert("Не удалось получить доступ к камере.");
+      });
     }
 
     return () => {
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.stop().catch(() => {});
       }
     };
   }, [isScannerOpen]);
@@ -165,22 +172,20 @@ const WarrantyForm = () => {
       />
 
       <Paper variant="outlined" sx={{ maxHeight: 200, overflow: 'auto', mb: 2, p: 1 }}>
-<List dense>
-  {serials.map((s, i) => (
-    <ListItem
-      key={i}
-      secondaryAction={
-        <IconButton edge="end" onClick={() => handleDeleteSerial(i)}>
-          ✕
-        </IconButton>
-      }
-    >
-      {s}
-    </ListItem>
-  ))}
-</List>
-
-
+        <List dense>
+          {serials.map((s, i) => (
+            <ListItem
+              key={i}
+              secondaryAction={
+                <IconButton edge="end" onClick={() => handleDeleteSerial(i)}>
+                  ✕
+                </IconButton>
+              }
+            >
+              {s}
+            </ListItem>
+          ))}
+        </List>
       </Paper>
 
       <Button
@@ -219,7 +224,11 @@ const WarrantyForm = () => {
       <Dialog open={isScannerOpen} onClose={() => setIsScannerOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Сканируйте QR/Штрихкод</DialogTitle>
         <DialogContent>
-          <div id="html5qr-code-full-region" style={{ width: '100%' }} />
+          <div
+            ref={scannerRef}
+            id="scanner"
+            style={{ width: '100%', height: '300px', margin: '0 auto' }}
+          />
         </DialogContent>
       </Dialog>
     </Box>

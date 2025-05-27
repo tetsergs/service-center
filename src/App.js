@@ -13,9 +13,9 @@ function App() {
         <nav className="mb-4">
           <NavLink className="btn me-2" to="/" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Приём оборудования</NavLink>
           <NavLink className="btn me-2" to="/orders" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Список заявок</NavLink>
-          <NavLink className="btn" to="/reports" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Отчеты</NavLink>
-          <NavLink className="btn" to="/warranty" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Гарантия</NavLink>
-          <NavLink className="btn" to="/defect" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Брак Склад</NavLink>
+          <NavLink className="btn me-2" to="/reports" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Отчеты</NavLink>
+          <NavLink className="btn me-2" to="/warranty" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Гарантия</NavLink>
+          <NavLink className="btn me-2" to="/defect" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Брак Склад</NavLink>
         </nav>
         <Routes>
           <Route path="/" element={<ReceptionPage />} />

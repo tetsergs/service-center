@@ -174,7 +174,7 @@ const ReportsPage = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Отчет');
     XLSX.writeFile(wb, 'report.xlsx');
   };
-
+ 
   return (
     <div className="container mt-4">
       <h4 className="mb-3">📊 Отчёты по ремонтам</h4>

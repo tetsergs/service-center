@@ -15,9 +15,21 @@ const equipmentTypes = [
 ];
 
 const equipmentName = {
-  'Моноблок': ['AT810 i3', 'AT810 i5', 'AT709 Celeron', 'AT709 DUAL', 'AT7810 DUAL'],
-  'Принт чеков': ['XP58 USB', 'XP58 USB+Blue', 'XP80C USB', 'XP80C USB+LAN', 'XP80C USB+LAN+COM', 'XP80C USB+WiFi'],
-  'Принт этикеток': ['XP-365B USB'],
+  'Моноблок': [
+    'AT810 i3', 
+    'AT810 i5', 
+    'AT709 Celeron', 
+    'AT709 DUAL', 
+    'AT7810 DUAL'],
+  'Принт чеков': [
+    'XP58 USB', 
+    'XP58 USB+Blue', 
+    'XP80C USB', 
+    'XP80C USB+LAN', 
+    'XP80C USB+LAN+COM', 
+    'XP80C USB+WiFi'],
+  'Принт этикеток': [
+    'XP-365B USB'],
   'Сканер ШК': [],
   'ТСД': [],
   'Прочее': [],

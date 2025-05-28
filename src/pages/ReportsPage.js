@@ -8,7 +8,14 @@ import {
   PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line
 } from 'recharts';
+import { Box, Typography, List, ListItem  } from '@mui/material';
 import * as XLSX from 'xlsx';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const ReportsPage = () => {
   const [orders, setOrders] = useState([]);
@@ -16,6 +23,59 @@ const ReportsPage = () => {
   const [filteredEquipment, setFilteredEquipment] = useState([]);
   const [previousPeriodData, setPreviousPeriodData] = useState([]);
   const [equipmentTypesOptions, setEquipmentTypesOptions] = useState([]);
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
+  const [startDate, setStartDate] = useState(dayjs().startOf('month').toDate());
+  const [endDate, setEndDate] = useState(dayjs().endOf('month').toDate());
+
+  const [defectRepairs, setDefectRepairs] = useState([]);
+  const [defectReport, setDefectReport] = useState(null);
+
+  const fetchDefectRepairs = async () => {
+    const snapshot = await getDocs(collection(db, 'defectRepairs'));
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setDefectRepairs(data);
+    return data;
+  };
+
+  const analyzeDefectRepairs = (repairs, startDate, endDate) => {
+    const filtered = repairs.filter(r => {
+      const date = new Date(r.date);
+      return date >= startDate && date <= endDate;
+    });
+
+    const totalCount = filtered.length;
+    const byTechnician = {};
+    const byType = {};
+    const bonusByTechnician = {};
+
+    filtered.forEach(r => {
+      byTechnician[r.technician] = (byTechnician[r.technician] || 0) + 1;
+      byType[r.type] = (byType[r.type] || 0) + 1;
+
+      const bonus = r.retailPrice ? r.retailPrice * 0.04 : 0;
+      if (bonus) {
+        bonusByTechnician[r.technician] = (bonusByTechnician[r.technician] || 0) + bonus;
+      }
+    });
+
+    return {
+      totalCount,
+      byTechnician,
+      byType,
+      bonusByTechnician
+    };
+  };
+
+  useEffect(() => {
+    const loadDefectReports = async () => {
+      const repairs = await fetchDefectRepairs();
+      const result = analyzeDefectRepairs(repairs, startDate, endDate);
+      setDefectReport(result);
+    };
+
+    loadDefectReports();
+  }, [startDate, endDate]);
+
 
   const [filters, setFilters] = useState({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -321,6 +381,53 @@ const ReportsPage = () => {
           </div>
         </>
       )}
+            <div className="card p-3 shadow-sm mb-4">
+        <h5>🛠️ Ремонты с брак-склада</h5>
+        {defectReport ? (
+          <>
+            <Typography variant="body1" className="mb-2">
+              <strong>Всего ремонтов:</strong> {defectReport.totalCount}
+            </Typography>
+
+            <Box className="mb-3">
+              <Typography variant="subtitle1"><strong>По техникам:</strong></Typography>
+              <List dense>
+                {Object.entries(defectReport.byTechnician).map(([tech, count]) => (
+                  <ListItem key={tech}>
+                    {tech}: {count}
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+
+            <Box className="mb-3">
+              <Typography variant="subtitle1"><strong>По типу оборудования:</strong></Typography>
+              <List dense>
+                {Object.entries(defectReport.byType).map(([type, count]) => (
+                  <ListItem key={type}>
+                    {type}: {count}
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+
+            <Box>
+              <Typography variant="subtitle1"><strong>Бонусы по техникам (4% от розничной цены):</strong></Typography>
+              <List dense>
+                {Object.entries(defectReport.bonusByTechnician).map(([tech, sum]) => (
+                  <ListItem key={tech}>
+                    {tech}: {sum.toFixed(2)} ₸
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          </>
+        ) : (
+          <div className="text-center">
+            <ClipLoader color="#36d7b7" loading={true} size={35} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

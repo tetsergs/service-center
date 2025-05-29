@@ -5,38 +5,14 @@ import {
 import { db } from '../firebase';
 import { collection, addDoc, getDocs } from 'firebase/firestore';
 
-const equipmentTypes = [
-  'Моноблок',
-  'Принт чеков',
-  'Принт этикеток',
-  'Сканер ШК',
-  'ТСД',
-  'Прочее'
-];
-
-const equipmentName = {
-  'Моноблок': [
-    'AT810 i3', 
-    'AT810 i5', 
-    'AT709 Celeron', 
-    'AT709 DUAL', 
-    'AT7810 DUAL'],
-  'Принт чеков': [
-    'XP58 USB', 
-    'XP58 USB+Blue', 
-    'XP80C USB', 
-    'XP80C USB+LAN', 
-    'XP80C USB+LAN+COM', 
-    'XP80C USB+WiFi'],
-  'Принт этикеток': [
-    'XP-365B USB'],
-  'Сканер ШК': [],
-  'ТСД': [],
-  'Прочее': [],
-};
-
 const technicianList = ['Мади', 'Ермахан'];
-
+const DISPLAY_TYPE_NAMES = {
+  labelPrint: 'Принтер этикеток',
+  posSystem: 'POS-система',
+  scanner: 'Сканер штрихкодов',
+  scale: 'Весы',
+  // добавь другие типы по мере необходимости
+};
 const DefectRepairs = () => {
   const [type, setType] = useState('');
   const [model, setModel] = useState('');
@@ -46,14 +22,28 @@ const DefectRepairs = () => {
   const [repairs, setRepairs] = useState([]);
   const [filteredRepairs, setFilteredRepairs] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [equipmentData, setEquipmentData] = useState({});
 
-  // Фильтры
+  const fetchEquipmentData = async () => {
+    const snapshot = await getDocs(collection(db, 'equipmentData'));
+    const data = {};
+    snapshot.forEach(doc => {
+      const docData = doc.data();
+      for (const [typeKey, typeValue] of Object.entries(docData)) {
+        data[typeKey] = typeValue;
+      }
+    });
+    console.log('Загруженные данные оборудования:', data);
+    setEquipmentData(data);
+  };
+
   const [filterTechnician, setFilterTechnician] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterSerial, setFilterSerial] = useState('');
 
   const handleSubmit = async () => {
     if (!type || !model || !serial || !partUsed || !technician) return;
+    const retailPrice = equipmentData[type]?.[model]?.[0] ?? null;
 
     const newRepair = {
       type,
@@ -62,16 +52,17 @@ const DefectRepairs = () => {
       partUsed,
       technician,
       date: new Date().toISOString(),
-      retailPrice: null
+      retailPrice
     };
 
     await addDoc(collection(db, 'defectRepairs'), newRepair);
+
     setType('');
     setModel('');
     setSerial('');
     setPartUsed('');
     setTechnician('');
-    fetchRepairs(); // обновить список после добавления
+    fetchRepairs();
   };
 
   const fetchRepairs = async () => {
@@ -81,13 +72,14 @@ const DefectRepairs = () => {
     setFilteredRepairs(list);
   };
 
+  const equipmentTypes = Object.keys(equipmentData);
   const getFilteredModels = () => {
-    return equipmentName[type] || [];
+    if (!type || !equipmentData[type]) return [];
+    return Object.keys(equipmentData[type]);
   };
 
   const applyFilters = () => {
     let filtered = repairs;
-
     if (filterTechnician) {
       filtered = filtered.filter(r => r.technician === filterTechnician);
     }
@@ -97,7 +89,6 @@ const DefectRepairs = () => {
     if (filterSerial) {
       filtered = filtered.filter(r => r.serial.toLowerCase().includes(filterSerial.toLowerCase()));
     }
-
     setFilteredRepairs(filtered);
   };
 
@@ -108,36 +99,40 @@ const DefectRepairs = () => {
     setFilteredRepairs(repairs);
   };
 
+  const formatTypeName = (key) => DISPLAY_TYPE_NAMES[key] || key;
+  
   useEffect(() => {
     fetchRepairs();
+    fetchEquipmentData();
   }, []);
 
   return (
     <Box sx={{ p: { xs: 2, sm: 4 } }}>
       <Typography variant="h5" gutterBottom>Ремонты с брак-склада</Typography>
 
-      {/* Ввод */}
       <TextField
         select fullWidth label="Тип оборудования" value={type}
-        onChange={e => setType(e.target.value)} sx={{ mb: 2 }}
+        onChange={e => {
+          setType(e.target.value);
+          setModel('');
+        }} sx={{ mb: 2 }}
       >
-        {equipmentTypes.map((opt, i) => (
-          <MenuItem key={i} value={opt}>{opt}</MenuItem>
+
+        {equipmentTypes.map((type, i) => (
+          
+          <MenuItem key={i} value={type}>{formatTypeName(type)}</MenuItem>
+
         ))}
       </TextField>
 
-      {type === 'Прочее' ? (
-        <TextField
-          fullWidth label="Название модели"
-          value={model} onChange={e => setModel(e.target.value)} sx={{ mb: 2 }}
-        />
-      ) : (
+      {type && (
         <TextField
           select fullWidth label="Название модели"
           value={model} onChange={e => setModel(e.target.value)} sx={{ mb: 2 }}
         >
-          {getFilteredModels().map((opt, i) => (
-            <MenuItem key={i} value={opt}>{opt}</MenuItem>
+
+          {getFilteredModels().map((modelName, i) => (
+            <MenuItem key={i} value={modelName}>{modelName}</MenuItem>
           ))}
         </TextField>
       )}
@@ -165,14 +160,12 @@ const DefectRepairs = () => {
         Зафиксировать ремонт
       </Button>
 
-      {/* Показать / скрыть историю */}
       <Button variant="outlined" onClick={() => setShowHistory(!showHistory)} sx={{ mb: 2 }}>
         {showHistory ? 'Скрыть историю ремонтов' : 'Показать историю ремонтов'}
       </Button>
 
       {showHistory && (
         <>
-          {/* Фильтры */}
           <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <TextField
               select label="ФИО техника" value={filterTechnician}
@@ -190,7 +183,7 @@ const DefectRepairs = () => {
             >
               <MenuItem value="">Все</MenuItem>
               {equipmentTypes.map((type, i) => (
-                <MenuItem key={i} value={type}>{type}</MenuItem>
+                <MenuItem key={i} value={type}>{formatTypeName(type)}</MenuItem>
               ))}
             </TextField>
 
@@ -205,19 +198,39 @@ const DefectRepairs = () => {
           </Box>
 
           <Typography variant="h6" sx={{ mb: 1 }}>История ремонтов</Typography>
-          <Paper variant="outlined" sx={{ maxHeight: 300, overflow: 'auto', p: 1 }}>
-            <List dense>
-              {filteredRepairs.length === 0 ? (
-                <ListItem>Ничего не найдено</ListItem>
-              ) : (
-                filteredRepairs.map((item, i) => (
-                  <ListItem key={i}>
-                    {item.date?.slice(0, 10)} — {item.type} {item.model}, SN: {item.serial}, запчасть: {item.partUsed}, техник: {item.technician}
-                  </ListItem>
-                ))
-              )}
-            </List>
-          </Paper>
+<Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto' }}>
+  {filteredRepairs.length === 0 ? (
+    <Typography sx={{ p: 2 }}>Ничего не найдено</Typography>
+  ) : (
+    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <thead style={{ position: 'sticky', top: 0, background: '#f0f0f0' }}>
+        <tr>
+          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Дата</th>
+          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Тип</th>
+          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Модель</th>
+          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Серийный №</th>
+          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Запчасть</th>
+          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Техник</th>
+          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Цена</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filteredRepairs.map((item, i) => (
+          <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+            <td style={{ padding: '8px' }}>{item.date?.slice(0, 10)}</td>
+            <td style={{ padding: '8px' }}>{formatTypeName(item.type)}</td>
+            <td style={{ padding: '8px' }}>{item.model}</td>
+            <td style={{ padding: '8px' }}>{item.serial}</td>
+            <td style={{ padding: '8px' }}>{item.partUsed}</td>
+            <td style={{ padding: '8px' }}>{item.technician}</td>
+            <td style={{ padding: '8px' }}>{item.retailPrice ? `${item.retailPrice}₸` : '-'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</Paper>
+
         </>
       )}
     </Box>

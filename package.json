@@ -8,6 +8,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.1.0",
+    "@mui/x-data-grid": "^8.4.0",
     "bootstrap": "^5.3.6",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",

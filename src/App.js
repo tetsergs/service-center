@@ -5,6 +5,7 @@ import OrdersPage from './pages/OrdersPage';
 import ReportsPage from './pages/ReportsPage';
 import WarrantyPage from './pages/WarrantyPage';
 import DefectRepairPage from './pages/DefectRepairPage';
+import EditPrices from './pages/EditPrices';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <NavLink className="btn me-2" to="/reports" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Отчеты</NavLink>
           <NavLink className="btn me-2" to="/warranty" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Гарантия</NavLink>
           <NavLink className="btn me-2" to="/defect" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Брак Склад</NavLink>
+          <NavLink className="btn me-2" to="/edit" style={({ isActive }) => ({ backgroundColor: isActive ? '#0d6efd' : '#6c757d', color: '#fff' })}>Цены</NavLink>
         </nav>
         <Routes>
           <Route path="/" element={<ReceptionPage />} />
@@ -23,6 +25,7 @@ function App() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/warranty" element={<WarrantyPage />} />
           <Route path="/defect" element={<DefectRepairPage />} />
+          <Route path="/edit" element={<EditPrices />} />
         </Routes>
       </div>
     </Router>

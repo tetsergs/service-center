@@ -381,54 +381,82 @@ const ReportsPage = () => {
           </div>
         </>
       )}
-            <div className="card p-3 shadow-sm mb-4">
-        <h5>🛠️ Ремонты с брак-склада</h5>
-        {defectReport ? (
-          <>
-            <Typography variant="body1" className="mb-2">
-              <strong>Всего ремонтов:</strong> {defectReport.totalCount}
+        {defectReport && (
+        <Box className="card p-4 shadow-sm mt-4">
+          <Typography variant="h6" gutterBottom>
+            🧰 Ремонт с брак склада
+          </Typography>
+
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            За выбранный период: <strong>{defectReport.totalCount}</strong> ремонтов
+          </Typography>
+
+          <Box className="row">
+            <Box className="col-md-6 mb-4">
+              <Typography variant="subtitle1" gutterBottom>
+                Ремонт по техникам
+              </Typography>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart
+                  data={Object.entries(defectReport.byTechnician).map(([technician, count]) => ({ technician, count }))}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="technician" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#8884d8" name="Количество ремонтов" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+
+            <Box className="col-md-6 mb-4">
+              <Typography variant="subtitle1" gutterBottom>
+                Сумма бонусов (4%)
+              </Typography>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={Object.entries(defectReport.bonusByTechnician).map(([technician, bonus]) => ({
+                      name: technician,
+                      value: parseFloat(bonus.toFixed(2))
+                    }))}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#82ca9d"
+                    label
+                  >
+                    {Object.entries(defectReport.bonusByTechnician).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `${value.toFixed(2)} ₸`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </Box>
+
+          <Box className="mt-4">
+            <Typography variant="subtitle1" gutterBottom>
+              Распределение по типу оборудования
             </Typography>
-
-            <Box className="mb-3">
-              <Typography variant="subtitle1"><strong>По техникам:</strong></Typography>
-              <List dense>
-                {Object.entries(defectReport.byTechnician).map(([tech, count]) => (
-                  <ListItem key={tech}>
-                    {tech}: {count}
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-
-            <Box className="mb-3">
-              <Typography variant="subtitle1"><strong>По типу оборудования:</strong></Typography>
-              <List dense>
-                {Object.entries(defectReport.byType).map(([type, count]) => (
-                  <ListItem key={type}>
-                    {type}: {count}
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-
-            <Box>
-              <Typography variant="subtitle1"><strong>Бонусы по техникам (4% от розничной цены):</strong></Typography>
-              <List dense>
-                {Object.entries(defectReport.bonusByTechnician).map(([tech, sum]) => (
-                  <ListItem key={tech}>
-                    {tech}: {sum.toFixed(2)} ₸
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-          </>
-        ) : (
-          <div className="text-center">
-            <ClipLoader color="#36d7b7" loading={true} size={35} />
-          </div>
-        )}
+            <List dense>
+              {Object.entries(defectReport.byType).map(([type, count]) => (
+                <ListItem key={type}>
+                  <Typography variant="body2">
+                    <strong>{type}</strong>: {count} шт.
+                  </Typography>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        </Box>
+      )}
       </div>
-    </div>
   );
 };
 

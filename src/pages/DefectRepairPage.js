@@ -5,12 +5,12 @@ import {
 import { db } from '../firebase';
 import { collection, addDoc, getDocs } from 'firebase/firestore';
 
-const technicianList = ['Мади', 'Ермахан'];
+const technicianList = ['Мади', 'Ермахан', 'Алибек'];
 const DISPLAY_TYPE_NAMES = {
   labelPrint: 'Принтер этикеток',
   posSystem: 'POS-система',
   scanner: 'Сканер штрихкодов',
-  scale: 'Весы',
+  recieptPrint: 'Принтер чеков',
   // добавь другие типы по мере необходимости
 };
 const DefectRepairs = () => {
@@ -198,38 +198,38 @@ const DefectRepairs = () => {
           </Box>
 
           <Typography variant="h6" sx={{ mb: 1 }}>История ремонтов</Typography>
-<Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto' }}>
-  {filteredRepairs.length === 0 ? (
-    <Typography sx={{ p: 2 }}>Ничего не найдено</Typography>
-  ) : (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead style={{ position: 'sticky', top: 0, background: '#f0f0f0' }}>
-        <tr>
-          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Дата</th>
-          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Тип</th>
-          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Модель</th>
-          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Серийный №</th>
-          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Запчасть</th>
-          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Техник</th>
-          <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Цена</th>
-        </tr>
-      </thead>
-      <tbody>
-        {filteredRepairs.map((item, i) => (
-          <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
-            <td style={{ padding: '8px' }}>{item.date?.slice(0, 10)}</td>
-            <td style={{ padding: '8px' }}>{formatTypeName(item.type)}</td>
-            <td style={{ padding: '8px' }}>{item.model}</td>
-            <td style={{ padding: '8px' }}>{item.serial}</td>
-            <td style={{ padding: '8px' }}>{item.partUsed}</td>
-            <td style={{ padding: '8px' }}>{item.technician}</td>
-            <td style={{ padding: '8px' }}>{item.retailPrice ? `${item.retailPrice}₸` : '-'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  )}
-</Paper>
+        <Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto' }}>
+          {filteredRepairs.length === 0 ? (
+            <Typography sx={{ p: 2 }}>Ничего не найдено</Typography>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ position: 'sticky', top: 0, background: '#f0f0f0' }}>
+                <tr>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Дата</th>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Тип</th>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Модель</th>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Серийный №</th>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Запчасть</th>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Техник</th>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ccc' }}>Цена</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRepairs.map((item, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '8px' }}>{item.date?.slice(0, 10)}</td>
+                    <td style={{ padding: '8px' }}>{formatTypeName(item.type)}</td>
+                    <td style={{ padding: '8px' }}>{item.model}</td>
+                    <td style={{ padding: '8px' }}>{item.serial}</td>
+                    <td style={{ padding: '8px' }}>{item.partUsed}</td>
+                    <td style={{ padding: '8px' }}>{item.technician}</td>
+                    <td style={{ padding: '8px' }}>{item.retailPrice ? `${item.retailPrice}₸` : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Paper>
 
         </>
       )}

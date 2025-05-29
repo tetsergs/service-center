@@ -36,35 +36,41 @@ const ReportsPage = () => {
     setDefectRepairs(data);
     return data;
   };
+  
+const analyzeDefectRepairs = (repairs, startDate, endDate) => {
+  const filtered = repairs.filter(r => {
+    const date = new Date(r.date);
+    return date >= startDate && date <= endDate;
+  });
 
-  const analyzeDefectRepairs = (repairs, startDate, endDate) => {
-    const filtered = repairs.filter(r => {
-      const date = new Date(r.date);
-      return date >= startDate && date <= endDate;
-    });
+  const totalCount = filtered.length;
+  const byTechnician = {};
+  const byType = {};
+  const bonusByTechnician = {};
+  const partsUsage = {};
 
-    const totalCount = filtered.length;
-    const byTechnician = {};
-    const byType = {};
-    const bonusByTechnician = {};
+  filtered.forEach(r => {
+    byTechnician[r.technician] = (byTechnician[r.technician] || 0) + 1;
+    byType[r.type] = (byType[r.type] || 0) + 1;
 
-    filtered.forEach(r => {
-      byTechnician[r.technician] = (byTechnician[r.technician] || 0) + 1;
-      byType[r.type] = (byType[r.type] || 0) + 1;
+    const bonus = r.retailPrice ? r.retailPrice * 0.04 : 0;
+    if (bonus) {
+      bonusByTechnician[r.technician] = (bonusByTechnician[r.technician] || 0) + bonus;
+    }
 
-      const bonus = r.retailPrice ? r.retailPrice * 0.04 : 0;
-      if (bonus) {
-        bonusByTechnician[r.technician] = (bonusByTechnician[r.technician] || 0) + bonus;
-      }
-    });
+    if (r.partUsed) {
+      partsUsage[r.partUsed] = (partsUsage[r.partUsed] || 0) + 1;
+    }
+  });
 
-    return {
-      totalCount,
-      byTechnician,
-      byType,
-      bonusByTechnician
-    };
+  return {
+    totalCount,
+    byTechnician,
+    byType,
+    bonusByTechnician,
+    partsUsage
   };
+};
 
   useEffect(() => {
     const loadDefectReports = async () => {
@@ -456,6 +462,31 @@ const ReportsPage = () => {
           </Box>
         </Box>
       )}
+      {defectReport?.partsUsage && (
+  <Box className="card p-3 mt-4">
+    <Typography variant="h6">Использованные запчасти</Typography>
+    <List>
+      {Object.entries(defectReport.partsUsage).map(([part, count]) => (
+        <ListItem key={part}>{part}: {count}</ListItem>
+      ))}
+    </List>
+  </Box>
+)}
+<Box className="card p-3 mt-4">
+  <Typography variant="h6">Сравнение по дням</Typography>
+  <ResponsiveContainer width="100%" height={300}>
+    <LineChart data={mergedDailyData()}>
+      <CartesianGrid stroke="#ccc" />
+      <XAxis dataKey="date" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+      <Line type="monotone" dataKey="Текущий" stroke="#8884d8" />
+      <Line type="monotone" dataKey="Предыдущий" stroke="#82ca9d" />
+    </LineChart>
+  </ResponsiveContainer>
+</Box>
+
       </div>
   );
 };

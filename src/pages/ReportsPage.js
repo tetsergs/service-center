@@ -98,7 +98,7 @@ const analyzeDefectRepairs = (repairs, startDate, endDate) => {
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
     // Сортировка по дате
-    data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     setOrders(data);
 
@@ -122,7 +122,7 @@ const analyzeDefectRepairs = (repairs, startDate, endDate) => {
       const currentFiltered = [];
 
       orders.forEach((o) => {
-        const created = new Date(o.createdAt);
+        const created = new Date(o.date);
         const inRange = created >= filters.startDate && created <= filters.endDate;
         const cityMatch = !filters.city || o.city === filters.city;
         const techMatch = !filters.technician || o.technician === filters.technician;
@@ -137,14 +137,14 @@ const analyzeDefectRepairs = (repairs, startDate, endDate) => {
                 ...eq,
                 technician: o.technician,
                 city: o.city,
-                createdAt: o.createdAt,
+                date: o.date,
               });
             }
           });
         }
       });
 
-      currentFiltered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      currentFiltered.sort((a, b) => new Date(a.date) - new Date(b.date));
       setFilteredEquipment(currentFiltered);
 
       // Предыдущий период
@@ -155,7 +155,7 @@ const analyzeDefectRepairs = (repairs, startDate, endDate) => {
       const prevFiltered = [];
 
       orders.forEach((o) => {
-        const created = new Date(o.createdAt);
+        const created = new Date(o.date);
         const inRange = created >= previousStart && created < previousEnd;
         const cityMatch = !filters.city || o.city === filters.city;
         const techMatch = !filters.technician || o.technician === filters.technician;
@@ -170,14 +170,14 @@ const analyzeDefectRepairs = (repairs, startDate, endDate) => {
                 ...eq,
                 technician: o.technician,
                 city: o.city,
-                createdAt: o.createdAt,
+                date: o.date,
               });
             }
           });
         }
       });
 
-      prevFiltered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      prevFiltered.sort((a, b) => new Date(a.date) - new Date(b.date));
       setPreviousPeriodData(prevFiltered);
     }
   }, [filters, orders]);
@@ -212,7 +212,7 @@ const analyzeDefectRepairs = (repairs, startDate, endDate) => {
   const groupByDay = (data, label) => {
     const grouped = {};
     data.forEach((eq) => {
-      const date = new Date(eq.createdAt).toISOString().split('T')[0];
+      const date = new Date(eq.date).toISOString().split('T')[0];
       if (!grouped[date]) grouped[date] = { date, [label]: 0 };
       grouped[date][label]++;
     });

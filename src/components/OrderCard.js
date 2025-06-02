@@ -1,18 +1,34 @@
 import React, { useState } from 'react';
+import {
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  IconButton,
+  Chip,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  Stack,
+  Divider,
+} from '@mui/material';
+import { Download, Delete, Edit, Check, Close } from '@mui/icons-material';
 import { generatePDF } from '../utils/generatePDF';
 
-const statusBadge = (status) => {
-  switch (status) {
-    case 'Диагностика':
-      return <span className="badge bg-secondary">Диагностика</span>;
-    case 'Ремонт':
-      return <span className="badge bg-warning text-dark">Ремонт</span>;
-    case 'Готово':
-      return <span className="badge bg-success">Готово</span>;
-    default:
-      return <span className="badge bg-light text-dark">Неизвестно</span>;
-  }
+const statusColor = {
+  Диагностика: 'default',
+  Ремонт: 'warning',
+  Готово: 'success',
 };
+
+const statusBadge = (status) => (
+  <Chip label={status || 'Неизвестно'} color={statusColor[status] || 'default'} size="small" />
+);
 
 const OrderCard = ({ order, onUpdate, onDelete }) => {
   const [equipmentState, setEquipmentState] = useState(order.equipment);
@@ -62,159 +78,160 @@ const OrderCard = ({ order, onUpdate, onDelete }) => {
     }, 0);
 
   return (
-    <div className="card shadow-sm mb-4 border-0">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start">
-          <div>
-  <h5 className="mb-1">
-    <i className="bi bi-person-fill me-2"></i>{order.clientName}
-  </h5>
-  
-  {order.clientPhone && (
-    <p className="mb-1 text-muted">
-      <i className="bi bi-telephone me-1"></i>{order.clientPhone}
-    </p>
-  )}
+    <Card variant="outlined" sx={{ mb: 3 }}>
+      <CardContent>
+        <Grid container justifyContent="space-between" alignItems="flex-start">
+          <Grid item xs={12} sm={8}>
+            <Typography variant="h6" gutterBottom>
+              {order.clientName}
+            </Typography>
+            {order.clientPhone && (
+              <Typography variant="body2" color="text.secondary">
+                📞 {order.clientPhone}
+              </Typography>
+            )}
+            {order.city && (
+              <Typography variant="body2" color="text.secondary">
+                📍 {order.city}
+              </Typography>
+            )}
+            {order.technician && (
+              <Typography variant="body2" color="text.secondary">
+                👨‍🔧 Техник: {order.technician}
+              </Typography>
+            )}
+            <Typography variant="caption" color="text.secondary">
+              🕒{' '}
+              {order.createdAt
+                ? new Date(order.createdAt).toLocaleString('ru-RU')
+                : 'Дата не указана'}
+            </Typography>
+          </Grid>
 
-  {order.city && (
-    <p className="mb-1 text-muted">
-      <i className="bi bi-geo-alt me-1"></i>{order.city}
-    </p>
-  )}
+          <Grid item xs={12} sm="auto">
+            <Stack direction="row" spacing={1} justifyContent="flex-end" mt={{ xs: 2, sm: 0 }}>
+              <Button size="small" variant="outlined" color="success" onClick={() => generatePDF(order)} startIcon={<Download />}>
+                АВР
+              </Button>
+              <Button size="small" variant="outlined" color="error" onClick={handleDeleteWithPIN} startIcon={<Delete />}>
+                Удалить
+              </Button>
+            </Stack>
+          </Grid>
+        </Grid>
 
-  {order.technician && (
-    <p className="mb-1 text-muted">
-      <i className="bi bi-person-badge me-1"></i>Техник: {order.technician}
-    </p>
-  )}
+        <Divider sx={{ my: 2 }} />
 
-  <small className="text-muted">
-    <i className="bi bi-clock me-1"></i>
-    {order.createdAt
-      ? new Date(order.createdAt).toLocaleString('ru-RU')
-      : 'Дата не указана'}
-  </small>
-</div>
-
-
-          <div className="d-flex flex-column align-items-end gap-1">
-            <button className="btn btn-sm btn-outline-success" onClick={() => generatePDF(order)}>
-              <i className="bi bi-download me-1"></i>Скачать АВР
-            </button>
-            <button className="btn btn-sm btn-outline-danger" onClick={handleDeleteWithPIN}>
-              <i className="bi bi-trash me-1"></i>Удалить
-            </button>
-          </div>
-        </div>
-
-        <hr />
-
-        <h6 className="mb-3">
-          <i className="bi bi-tools me-2"></i>Оборудование
-        </h6>
+        <Typography variant="subtitle1" gutterBottom>
+          🛠️ Оборудование
+        </Typography>
 
         {order.equipment.map((eq, index) => (
-          <div key={index} className="border rounded p-3 mb-3 bg-light-subtle">
-            <div className="d-flex justify-content-between">
-              <div>
-                <div><strong>Тип:</strong> {eq.customType || eq.type}</div>
-                <div><strong>Серийный:</strong> {eq.serial}</div>
-              </div>
+          <Card
+            key={index}
+            variant="outlined"
+            sx={{ p: 2, mb: 2, backgroundColor: '#f9f9f9' }}
+          >
+            <Grid container justifyContent="space-between" alignItems="flex-start">
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2"><strong>Тип:</strong> {eq.customType || eq.type}</Typography>
+                <Typography variant="body2"><strong>Серийный:</strong> {eq.serial}</Typography>
+              </Grid>
 
-              <div className="text-end">
+              <Grid item xs={12} sm={6}>
                 {editingIndex === index ? (
                   <>
-                    <select
-                      className="form-select form-select-sm mb-2"
-                      value={equipmentState[index].status}
-                      onChange={(e) => updateEquipmentField(index, 'status', e.target.value)}
-                    >
-                      <option value="Диагностика">Диагностика</option>
-                      <option value="Ремонт">Ремонт</option>
-                      <option value="Готово">Готово</option>
-                    </select>
+                    <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+                      <InputLabel>Статус</InputLabel>
+                      <Select
+                        value={equipmentState[index].status}
+                        label="Статус"
+                        onChange={(e) => updateEquipmentField(index, 'status', e.target.value)}
+                      >
+                        <MenuItem value="Диагностика">Диагностика</MenuItem>
+                        <MenuItem value="Ремонт">Ремонт</MenuItem>
+                        <MenuItem value="Готово">Готово</MenuItem>
+                      </Select>
+                    </FormControl>
 
                     {equipmentState[index].status === 'Готово' && (
                       <>
-                        <div className="form-check mb-2">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id={`warranty-${index}`}
-                            checked={equipmentState[index].warranty || false}
-                            onChange={(e) =>
-                              updateEquipmentField(index, 'warranty', e.target.checked)
-                            }
-                          />
-                          <label htmlFor={`warranty-${index}`} className="form-check-label">
-                            Гарантийный ремонт
-                          </label>
-                        </div>
-
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={equipmentState[index].warranty || false}
+                              onChange={(e) =>
+                                updateEquipmentField(index, 'warranty', e.target.checked)
+                              }
+                            />
+                          }
+                          label="Гарантийный ремонт"
+                          sx={{ mb: 1 }}
+                        />
                         {!equipmentState[index].warranty && (
                           <>
-                            <input
-                              type="text"
-                              className="form-control form-control-sm mb-1"
-                              placeholder="Услуга"
+                            <TextField
+                              size="small"
+                              fullWidth
+                              label="Услуга"
                               value={equipmentState[index].repairDetails || ''}
                               onChange={(e) =>
                                 updateEquipmentField(index, 'repairDetails', e.target.value)
                               }
+                              sx={{ mb: 1 }}
                             />
-                            <input
+                            <TextField
+                              size="small"
+                              fullWidth
+                              label="Сумма"
                               type="number"
-                              className="form-control form-control-sm mb-2"
-                              placeholder="Сумма"
                               value={equipmentState[index].repairCost || ''}
                               onChange={(e) =>
                                 updateEquipmentField(index, 'repairCost', e.target.value)
                               }
+                              sx={{ mb: 1 }}
                             />
                           </>
                         )}
                       </>
                     )}
 
-                    <div className="d-flex gap-2 justify-content-end">
-                      <button className="btn btn-sm btn-success" onClick={() => handleSave(index)}>
-                        <i className="bi bi-check-circle"></i>
-                      </button>
-                      <button className="btn btn-sm btn-secondary" onClick={() => setEditingIndex(null)}>
-                        <i className="bi bi-x-circle"></i>
-                      </button>
-                    </div>
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <IconButton color="success" onClick={() => handleSave(index)}>
+                        <Check />
+                      </IconButton>
+                      <IconButton color="default" onClick={() => setEditingIndex(null)}>
+                        <Close />
+                      </IconButton>
+                    </Stack>
                   </>
                 ) : (
-                  <>
-                    <div className="mb-1">{statusBadge(eq.status)}</div>
+                  <Stack spacing={1} alignItems="flex-end">
+                    {statusBadge(eq.status)}
                     {eq.status === 'Готово' && (
                       <>
-                        <div><strong>Услуга:</strong> {eq.repairDetails || '—'}</div>
-                        <div>
+                        <Typography variant="body2"><strong>Услуга:</strong> {eq.repairDetails || '—'}</Typography>
+                        <Typography variant="body2">
                           <strong>Стоимость:</strong>{' '}
                           {eq.warranty ? 'Гарантия' : `${eq.repairCost || 0} ₸`}
-                        </div>
+                        </Typography>
                       </>
                     )}
-                    <button
-                      className="btn btn-sm btn-outline-primary mt-2"
-                      onClick={() => startEditing(index)}
-                    >
-                      <i className="bi bi-pencil"></i>
-                    </button>
-                  </>
+                    <IconButton size="small" onClick={() => startEditing(index)}>
+                      <Edit fontSize="small" />
+                    </IconButton>
+                  </Stack>
                 )}
-              </div>
-            </div>
-          </div>
+              </Grid>
+            </Grid>
+          </Card>
         ))}
 
-        <div className="text-end mt-2">
-          <strong>Итого: {getTotalCost()} ₸</strong>
-        </div>
-      </div>
-    </div>
+        <Typography align="right" fontWeight="bold" sx={{ mt: 2 }}>
+          Итого: {getTotalCost()} ₸
+        </Typography>
+      </CardContent>
+    </Card>
   );
 };
 

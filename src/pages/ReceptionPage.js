@@ -1,20 +1,36 @@
-import React, { useState } from 'react';
-import { db } from '../firebase'; // путь зависит от расположения firebase.js
-import { setDoc, doc } from 'firebase/firestore';
-import { v4 as uuidv4 } from 'uuid';
+import React, { useState } from "react";
+import {
+  Container,
+  Paper,
+  Typography,
+  Grid,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  IconButton,
+} from "@mui/material";
+import { Add, Delete } from "@mui/icons-material";
 
+const cities = ["Астана", "Алматы"];
+const technicians = ["Мади", "Ермахан"];
 
 const ReceptionPage = () => {
   const [formData, setFormData] = useState({
-    clientName: '',
-    phone: '',
-    city: 'Астана',
-    equipment: [{ type: '', customType: '', name: '', serial: '' }],
-    date: '',
-    technician: '',
-    status: 'Диагностика',
-    notes: '',
+    clientName: "",
+    phone: "",
+    city: "Астана",
+    date: "",
+    technician: "",
+    notes: "",
+    equipment: [{ type: "", name: "", serial: "" }],
   });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleEquipmentChange = (index, field, value) => {
     const updated = [...formData.equipment];
@@ -22,225 +38,195 @@ const ReceptionPage = () => {
     setFormData({ ...formData, equipment: updated });
   };
 
-  const handleRemoveEquipment = (index) => {
+  const addEquipment = () => {
+    setFormData({
+      ...formData,
+      equipment: [...formData.equipment, { type: "", name: "", serial: "" }],
+    });
+  };
+
+  const removeEquipment = (index) => {
     const updated = [...formData.equipment];
     updated.splice(index, 1);
     setFormData({ ...formData, equipment: updated });
   };
 
-  const addEquipment = () => {
-    setFormData({
-      ...formData,
-      equipment: [...formData.equipment, { type: '', customType: '', name: '', serial: '' }],
-    });
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Отправка:", formData);
+    // отправка в Firestore, если нужно
   };
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  const orderWithId = {
-    ...formData,
-    id: uuidv4(),
-    createdAt: Date.now(), // 🕒 текущая дата
-    clientPhone: formData.phone, // 📞 правильное поле
-  };
-
-  try {
-    await setDoc(doc(db, 'orders', orderWithId.id), orderWithId);
-    alert('Заявка сохранена!');
-  } catch (error) {
-    console.error('Ошибка при сохранении заявки:', error);
-    alert('Ошибка при сохранении!');
-    return;
-  }
-
-  // Очистка формы
-  setFormData({
-    clientName: '',
-    phone: '',
-    city: 'Астана',
-    equipment: [{ type: '', customType: '', name: '', serial: '' }],
-    date: '',
-    technician: '',
-    status: 'Диагностика',
-    notes: '',
-  });
-};
-
-
 
   return (
-    <div className="container mt-5">
-      <div className="card shadow">
-        <div className="card-header bg-primary text-white">
-          <h4 className="mb-0">📋 Приём оборудования</h4>
-        </div>
-        <div className="card-body">
-          <form onSubmit={handleSubmit}>
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="form-label">Имя клиента</label>
-                <input
-                  type="text"
-                  name="clientName"
-                  className="form-control"
-                  value={formData.clientName}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Телефон</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  className="form-control"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Город</label>
-                <select
+    <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
+        <Typography variant="h5" gutterBottom>
+          📋 Приём оборудования
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={2}>
+            {/* Клиент */}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Имя клиента"
+                name="clientName"
+                fullWidth
+                required
+                value={formData.clientName}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Телефон"
+                name="phone"
+                fullWidth
+                required
+                value={formData.phone}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            {/* Приём */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Город</InputLabel>
+                <Select
                   name="city"
-                  className="form-select"
                   value={formData.city}
                   onChange={handleChange}
+                  label="Город"
                 >
-                  <option>Астана</option>
-                  <option>Алматы</option>
-                </select>
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Дата приёма</label>
-                <input
-                  type="date"
-                  name="date"
-                  className="form-control"
-                  value={formData.date}
+                  {cities.map((city) => (
+                    <MenuItem key={city} value={city}>
+                      {city}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Дата приёма"
+                type="date"
+                name="date"
+                fullWidth
+                required
+                InputLabelProps={{ shrink: true }}
+                value={formData.date}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl maxWidth={4}>
+                <InputLabel>Техник</InputLabel>
+                <Select
+                  name="technician"
+                  value={formData.technician}
                   onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Имя техника</label>
-                  <select
-                    className="form-select mb-3"
-                    name="technician"
-                    value={formData.technician}
-                    onChange={handleChange}
-                    required
+                  label="Техник"
+                >
+                  {technicians.map((tech) => (
+                    <MenuItem key={tech} value={tech}>
+                      {tech}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+<Container>
+            {/* Заметки */}
+            <Grid item xs={12}>
+              <TextField
+                label="Заметки"
+                name="notes"
+                fullWidth
+                multiline
+                rows={2}
+                value={formData.notes}
+                onChange={handleChange}
+              />
+            </Grid>
+</Container>
+            {/* Оборудование */}
+      <Container>
+            <Grid item xs={12}>
+              <Typography variant="h6">⚙️ Оборудование</Typography>
+            </Grid>
+      </Container>
+            {formData.equipment.map((item, index) => (
+              <React.Fragment key={index}>
+                 <Container>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    label="Тип"
+                    maxWidth={3}
+                    value={item.type}
+                    onChange={(e) =>
+                      handleEquipmentChange(index, "type", e.target.value)
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Название"
+                    maxWidth={4}
+                    value={item.name}
+                    onChange={(e) =>
+                      handleEquipmentChange(index, "name", e.target.value)
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={5}>
+                  <TextField
+                    label="Серийный номер"
+                    maxWidth={5}
+                    value={item.serial}
+                    onChange={(e) =>
+                      handleEquipmentChange(index, "serial", e.target.value)
+                    }
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={1}>
+                  <IconButton
+                    color="error"
+                    onClick={() => removeEquipment(index)}
+                    disabled={formData.equipment.length === 1}
                   >
-                    <option value="">Выберите техника</option>
-                    <option value="Мади">Мади</option>
-                    <option value="Ермахан">Ермахан</option>
-                  </select>
-              </div>
-              <div className="col-12">
-                <label className="form-label">Заметки</label>
-                <textarea
-                  name="notes"
-                  className="form-control"
-                  rows="3"
-                  value={formData.notes}
-                  onChange={handleChange}
-                />
-              </div>
+                    <Delete />
+                  </IconButton>
+                  
+                </Grid>
+                </Container>
+              </React.Fragment>
+            ))}
 
-              <hr className="my-4" />
+            <Grid item xs={12}>
+              <Button
+                variant="outlined"
+                startIcon={<Add />}
+                onClick={addEquipment}
+              >
+                Добавить оборудование
+              </Button>
+            </Grid>
 
-              <div className="col-12">
-                <h5 className="mb-3">🛠 Оборудование</h5>
-
-                {formData.equipment.map((item, index) => (
-                  <div key={index} className="border p-2 mb-2 rounded">
-                    <div className="row">
-                      <div className="col-md-4">
-                        <label>Тип оборудования</label>
-                        <select
-                          className="form-control"
-                          value={item.type}
-                          onChange={(e) =>
-                            handleEquipmentChange(index, 'type', e.target.value)
-                          }
-                        >
-                          <option value="">Выберите...</option>
-                          <option value="Моноблок">Моноблок</option>
-                          <option value="Сканер ШК">Сканер ШК</option>
-                          <option value="Принтер Ч">Принтер Ч</option>
-                          <option value="Принтер Э">Принтер Э</option>
-                          <option value="Электронные весы">Электронные весы</option>
-                          <option value="Другое">Другое</option>
-                        </select>
-                        {item.type === 'Другое' && (
-                          <input
-                            type="text"
-                            className="form-control mt-2"
-                            placeholder="Укажите тип"
-                            value={item.customType}
-                            onChange={(e) =>
-                              handleEquipmentChange(index, 'customType', e.target.value)
-                            }
-                          />
-                        )}
-                      </div>
-                      <div className="col-md-4">
-                        <label>Название</label>
-                        <input
-                          className="form-control"
-                          value={item.name}
-                          onChange={(e) =>
-                            handleEquipmentChange(index, 'name', e.target.value)
-                          }
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <label>Серийный номер</label>
-                        <input
-                          className="form-control"
-                          value={item.serial}
-                          onChange={(e) =>
-                            handleEquipmentChange(index, 'serial', e.target.value)
-                          }
-                        />
-                      </div>
-                      <div className="col-md-1 d-flex align-items-end">
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => handleRemoveEquipment(index)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                <button
-                  type="button"
-                  className="btn btn-outline-primary"
-                  onClick={addEquipment}
-                >
-                  + Добавить оборудование
-                </button>
-              </div>
-
-              <div className="col-12 mt-4">
-                <button type="submit" className="btn btn-success w-100">
-                  💾 Сохранить заявку
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+            {/* Кнопка */}
+            <Grid item xs={12}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="success"
+                fullWidth
+              >
+                Сохранить заявку
+              </Button>
+            </Grid>
+          </Grid>
+        </form>
+      </Paper>
+    </Container>
   );
 };
 

@@ -21,6 +21,7 @@ const EditPrices = () => {
   const [pendingAction, setPendingAction] = useState(null);
   const [pinInput, setPinInput] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+const [priceDialogOpen, setPriceDialogOpen] = useState(false);
 
   const fetchEquipmentData = async () => {
     const snapshot = await getDocs(collection(db, 'equipmentData'));
@@ -54,12 +55,20 @@ const EditPrices = () => {
     setPinDialogOpen(true);
   };
 
-  const handleConfirmPIN = async () => {
-    if (pinInput !== PIN_CODE) {
-      setSnackbar({ open: true, message: 'Неверный PIN-код', severity: 'error' });
-      return;
-    }
+const handleConfirmPIN = async () => {
 
+  if (pinInput !== PIN_CODE) {
+    setSnackbar({ open: true, message: 'Неверный PIN-код', severity: 'error' });
+    return;
+  }
+
+  if (pendingAction === 'edit') {
+    setPinDialogOpen(false);
+    setPriceDialogOpen(true);
+    return;
+  }
+
+  if (pendingAction === 'delete') {
     const targetDocId = Object.keys(equipmentData).find(docId =>
       equipmentData[docId][selectedType]?.[selectedModel]
     );
@@ -73,26 +82,45 @@ const EditPrices = () => {
     const docRef = doc(db, 'equipmentData', targetDocId);
     const updatedDoc = { ...equipmentData[targetDocId] };
 
-    if (pendingAction === 'edit') {
-      updatedDoc[selectedType][selectedModel][0] = Number(newPrice);
-      await updateDoc(docRef, updatedDoc);
-      setSnackbar({ open: true, message: 'Цена успешно обновлена', severity: 'success' });
-    }
+    delete updatedDoc[selectedType][selectedModel];
+    if (Object.keys(updatedDoc[selectedType]).length === 0) delete updatedDoc[selectedType];
 
-    if (pendingAction === 'delete') {
-      delete updatedDoc[selectedType][selectedModel];
-      if (Object.keys(updatedDoc[selectedType]).length === 0) delete updatedDoc[selectedType];
-      await updateDoc(docRef, updatedDoc);
-      setSnackbar({ open: true, message: 'Модель удалена', severity: 'info' });
-    }
+    await updateDoc(docRef, updatedDoc);
+    setSnackbar({ open: true, message: 'Модель удалена', severity: 'info' });
 
     setPinDialogOpen(false);
     setPinInput('');
     setPendingAction(null);
     setSelectedModel('');
-    setNewPrice('');
     fetchEquipmentData();
-  };
+  }
+};
+const handleUpdatePrice = async () => {
+  const targetDocId = Object.keys(equipmentData).find(docId =>
+    equipmentData[docId][selectedType]?.[selectedModel]
+  );
+
+  if (!targetDocId) {
+    setSnackbar({ open: true, message: 'Элемент не найден в базе', severity: 'error' });
+    setPriceDialogOpen(false);
+    return;
+  }
+
+  const docRef = doc(db, 'equipmentData', targetDocId);
+  const updatedDoc = { ...equipmentData[targetDocId] };
+  updatedDoc[selectedType][selectedModel][0] = Number(newPrice);
+
+  await updateDoc(docRef, updatedDoc);
+  setSnackbar({ open: true, message: 'Цена успешно обновлена', severity: 'success' });
+
+  setPriceDialogOpen(false);
+  setPinInput('');
+  setPendingAction(null);
+  setSelectedModel('');
+  setNewPrice('');
+  fetchEquipmentData();
+};
+
 
   const rows = Object.entries(equipmentData).flatMap(([docId, types]) =>
     Object.entries(types).flatMap(([type, models]) =>
@@ -137,6 +165,44 @@ const EditPrices = () => {
     }
   ];
 
+const handleAddNewModel = async () => {
+  if (!newType || !newModel || !newModelPrice) {
+    setSnackbar({ open: true, message: 'Заполните все поля', severity: 'warning' });
+    return;
+  }
+
+  const docId = Object.keys(equipmentData)[0]; // сохраняем в первый найденный документ
+  const docRef = doc(db, 'equipmentData', docId);
+  const updatedDoc = { ...equipmentData[docId] };
+
+  if (!updatedDoc[newType]) {
+    updatedDoc[newType] = {};
+  }
+
+  if (updatedDoc[newType][newModel]) {
+    setSnackbar({ open: true, message: 'Такая модель уже существует', severity: 'error' });
+    return;
+  }
+
+  updatedDoc[newType][newModel] = [Number(newModelPrice)];
+
+  try {
+    await updateDoc(docRef, updatedDoc);
+    setSnackbar({ open: true, message: 'Оборудование добавлено', severity: 'success' });
+    setNewType('');
+    setNewModel('');
+    setNewModelPrice('');
+    fetchEquipmentData();
+  } catch (error) {
+    setSnackbar({ open: true, message: 'Ошибка при добавлении', severity: 'error' });
+  }
+};
+
+
+const [newType, setNewType] = useState('');
+const [newModel, setNewModel] = useState('');
+const [newModelPrice, setNewModelPrice] = useState('');
+
   return (
     <Box sx={{ p: { xs: 2, sm: 4 } }}>
       <Typography variant="h5" gutterBottom>Изменение цен на оборудование</Typography>
@@ -154,7 +220,31 @@ const EditPrices = () => {
           <MenuItem key={type} value={type}>{type}</MenuItem>
         ))}
       </TextField>
-
+<Typography variant="h6" gutterBottom>Добавить новое оборудование</Typography>
+<Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+  <TextField
+    label="Тип"
+    value={newType}
+    onChange={(e) => setNewType(e.target.value)}
+    sx={{ flex: 1, minWidth: 160 }}
+  />
+  <TextField
+    label="Модель"
+    value={newModel}
+    onChange={(e) => setNewModel(e.target.value)}
+    sx={{ flex: 1, minWidth: 160 }}
+  />
+  <TextField
+    label="Цена (₸)"
+    type="number"
+    value={newModelPrice}
+    onChange={(e) => setNewModelPrice(e.target.value)}
+    sx={{ flex: 1, minWidth: 160 }}
+  />
+  <Button variant="contained" onClick={handleAddNewModel} sx={{ height: '56px' }}>
+    Добавить
+  </Button>
+</Box>
       <Box sx={{ height: 500 }}>
         <DataGrid
           rows={filteredRows}
@@ -185,6 +275,24 @@ const EditPrices = () => {
           <Button onClick={handleConfirmPIN}>Подтвердить</Button>
         </DialogActions>
       </Dialog>
+<Dialog open={priceDialogOpen} onClose={() => setPriceDialogOpen(false)}>
+  <DialogTitle>Изменить цену</DialogTitle>
+  <DialogContent>
+    <TextField
+      autoFocus
+      fullWidth
+      type="number"
+      label="Новая цена"
+      value={newPrice}
+      onChange={e => setNewPrice(e.target.value)}
+      sx={{ mt: 1 }}
+    />
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setPriceDialogOpen(false)}>Отмена</Button>
+    <Button onClick={handleUpdatePrice}>Сохранить</Button>
+  </DialogActions>
+</Dialog>
 
       <Snackbar
         open={snackbar.open}
